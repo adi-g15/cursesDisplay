@@ -1,5 +1,7 @@
 ## Curses Display
 
+![CMake](https://github.com/adi-g15/cursesDisplay/workflows/CMake/badge.svg)
+
 This is a C++ wrapper, providing RAII classes wrappers over the curses library.
 It was originally a part of my [WorldLine Simulation project](https://github.com/adi-g15/worldLineSim), so it in by itself is very small as of now.
 
