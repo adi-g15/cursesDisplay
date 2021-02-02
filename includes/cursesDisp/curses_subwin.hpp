@@ -1,9 +1,9 @@
 #pragma once
 
-#include <iostream>
 #include "curses.h"
-#include "graphMat/util/coord.hpp"
+#include "util/coord.hpp"
 
+#include <iostream>
 #include <memory>
 #include <string>	// for std::to_string
 
@@ -32,8 +32,8 @@ public:
 	void updateDimen(); // @brief - Updates contents of this->dimensions
 	void newline();  // move to the next line (uses last_write_pos)
 	void moveCursor(int row, int col);
-	void hline(chtype = ACS_HLINE);   // @brief -> Draws a horizontal line on NEXT LINE
-	void hline(int y, int x, char, int len);   // not defined now, not needed
+	void h_line(chtype = ACS_HLINE);   // @brief -> Draws a horizontal line on NEXT LINE
+	void h_line(int y, int x, char, int len);   // not defined now, not needed
 
 	/**
 	 * @brief - Wrappers around waddstr() and mvwaddstr()
@@ -42,13 +42,13 @@ public:
 	 *           row - Y dimension to write at
 	 *           col - X dimension to write at
 	*/
-	void addstr(std::string_view str, position = position::AT_CURS);
-	void addstr(int row, int col, std::string_view str);
+	void add_str(std::string_view str, position = position::AT_CURS);
+	void add_str(int row, int col, std::string_view str);
 	// @future - Later implement the wrapper to mvwprintw() too, since it provides the formatted output
 	// @brief - Move to a new line, and add a string, there
 	void nladdstr(std::string_view str, position = position::AT_CURS);
 
-	void addch(char ch);
+	void add_ch(char ch);
 
 	void printf(const char*);
 
@@ -57,10 +57,10 @@ public:
 	void printf(const char* format, T first_val, Types... next_vals){
 		for( int i = 0; format[i] != '\0'; ++i ){
 			if( format[i] == '%' ){
-				if( std::is_integral<T>::value ){
-					this->addstr(std::to_string(first_val));
-				} else if( std::is_same<T, char>::value ){
-					this->addch(first_val);
+				if constexpr( std::is_integral_v<T> ){
+					this->add_str(std::to_string(first_val));
+				} else if constexpr( std::is_same_v<T, char> ){
+					this->add_ch(first_val);
 				} else{
 					// else ignore any other type
 				}
@@ -68,15 +68,15 @@ public:
 
 				// #if std::is_integral<T>::value
 				// #elif std::is_same<T, char>::value
-				//     this->addch(first_val);
+				//     this->add_ch(first_val);
 				// #elif std::is_same<T, const char*>::value
-				//     this->addstr(first_val);
+				//     this->add_str(first_val);
 				// #elif std::is_same<T, std::string>::value || std::is_same<T, std::string_view>::value
-				//     this->addstr(first_val.data());
+				//     this->add_str(first_val.data());
 				// #else
 				// #endif
 			} else{
-				this->addch(format[i]);
+				this->add_ch(format[i]);
 			}
 		}
 	}
@@ -84,10 +84,10 @@ public:
 	void printf(const char* format, std::string_view first_val, Types... next_vals){
 		for( int i = 0; format[i] != '\0'; ++i ){
 			if( format[i] == '%' ){
-				this->addstr(first_val.data());
+				this->add_str(first_val.data());
 				return this->printf(format + i + 1, next_vals...);
 			} else{
-				this->addch(format[i]);
+				this->add_ch(format[i]);
 			}
 		}
 	}

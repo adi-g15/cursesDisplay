@@ -1,21 +1,21 @@
-#include "display/curses_subwin.hpp"
+#include "curses_subwin.hpp"
 #include <string>
 
-void SubWindow::box(chtype vline, chtype hline){
+void SubWindow::box(chtype vline, chtype h_line){
     if( this->win ){
-        // ::box(win.get(), ((vline != '\0') ? vline: ACS_VLINE) , ((hline != '\0') ? hline: ACS_HLINE)); // calling the one available in global scope
-        ::box(win.get(), vline , hline); // calling the one available in global scope
+        // ::box(win.get(), ((vline != '\0') ? vline: ACS_VLINE) , ((h_line != '\0') ? h_line: ACS_HLINE)); // calling the one available in global scope
+        ::box(win.get(), vline , h_line); // calling the one available in global scope
     }
     this->boxed = true;
 
     this->updateDimen();
 }
 
-void SubWindow::hline(chtype ch){
+void SubWindow::h_line(chtype ch){
     this->updateDimen();
     ++last_write_pos.n_row;
 
-    ::mvwhline(
+    mvwhline(
         this->win.get(),
         last_write_pos.n_row,
         last_write_pos.n_col,
@@ -78,11 +78,11 @@ void SubWindow::updateDimen(){
     getmaxyx(win.get(), dimensions.n_col, dimensions.n_row);
 }
 
-void SubWindow::addch(char ch){
+void SubWindow::add_ch(char ch){
     waddch(this->win.get(), ch);
 }
 
-void SubWindow::addstr(std::string_view str, position pos){
+void SubWindow::add_str(std::string_view str, position pos){
     if( pos != position::AT_CURS ){
         this->updateDimen();
         if( pos == position::LEFT )
@@ -105,7 +105,7 @@ void SubWindow::addstr(std::string_view str, position pos){
 /**
  * @note - If either of row or col is negative, then it will be understood as max-the_value, for eg. row = -1, will be row = getmaxx(this->win.get())-1
 */
-void SubWindow::addstr(int row, int col, std::string_view str){
+void SubWindow::add_str(int row, int col, std::string_view str){
     if( row < 0 )
         row = getmaxy(this->win.get()) - row;
 
@@ -113,17 +113,17 @@ void SubWindow::addstr(int row, int col, std::string_view str){
         col = getmaxx(this->win.get()) - col;
 
     this->moveCursor(row, col);
-    return this->addstr(str);
+    return this->add_str(str);
 }
 
 // move to the next line (NL), and add str
 void SubWindow::nladdstr(std::string_view str, position pos){
     this->newline();
-    this->addstr(str, pos);
+    this->add_str(str, pos);
 }
 
 void SubWindow::printf(const char* format){
-    this->addstr(format);
+    this->add_str(format);
 }
 
 void SubWindow::moveCursor(int row, int col){

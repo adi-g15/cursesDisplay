@@ -1,8 +1,9 @@
 // @note @future -> Later try to get this into a single display.hpp for easier use with modifications later on
 
-#include "verse.hpp"
-#include "display/display.hpp"
-#include "display/node_adapter.hpp"
+#include "display.hpp"
+#include "node_adapter.hpp"
+
+#include <type_traits>
 
 void Display::pauseRendering(){
 	this->paused = true;
@@ -32,54 +33,6 @@ void Display::startEventLoop() {	// MUST BE CALLED ONLY ONCE DURING EACH INTERVA
 	this->event_mutex.unlock();
 }
 
-std::shared_ptr<node_adapter> Display::newNodeAdapter(World_Node* node){
-	// @note - Not using the_occupy_currently
-	this->main_area->updateDimen();
-	this->pauseRendering();
-
-	int y_corner;
-	int x_corner;
-	int index_num = queue.size();
-	if(index_num == 8){
-		queue.pop();
-
-		index_num = 7;
-	}
-
-	int bigBox_coord_x;
-	int bigBox_coord_y;	// the big box's corner coord
-
-	bigBox_coord_y = ((main_area->getmax_y()+1)/2) * (index_num / 4);	// first row or second row
-	bigBox_coord_x = ((main_area->getmax_x()+1)/4) * (index_num % 4);
-
-	if( index_num %2 == 0 ){
-		y_corner = bigBox_coord_y;
-	}else{
-		y_corner = bigBox_coord_y + 2;	// 2 lines below
-	}
-
-		// here what we want is to `horizonatlly center` the node_adapter inside this big_box
-	x_corner = bigBox_coord_x + ( (main_area->getmax_x()+1)/4 - adapters_width ) / 2;
-
-	std::shared_ptr<node_adapter> adapter{ 
-		new node_adapter(
-			this->shared_from_this(), 
-			node, 
-			this->adapters_height, 
-			this->adapters_width,
-			y_corner,
-			x_corner
-		)
-	};
-
-	queue.push(adapter->node, adapter);
-
-	adapter->update();	// get it on screen
-	this->main_area->refresh();
-
-	return adapter;
-}
-
 void Display::helpScreen(){
 	using namespace std::chrono_literals;
 
@@ -94,7 +47,7 @@ void Display::helpScreen(){
 	helpArea.box();
 	auto async_input = this->get_async_input();
 	
-	helpArea.addstr(1, 1, "Help Guide");
+	helpArea.add_str(1, 1, "Help Guide");
 	helpArea.nladdstr("====================");
 
 	helpArea.newline();
@@ -112,11 +65,11 @@ void Display::helpScreen(){
 	helpArea.nladdstr("-   L - Logs (of World)");
 	helpArea.nladdstr("-   V - Logs (of Verse)");
 
-	helpArea.addstr(-3, 1, "If you find a problem...");
+	helpArea.add_str(-3, 1, "If you find a problem...");
 	helpArea.nladdstr("Please solve it yourselves");
 	helpArea.nladdstr(":copy: AdityaG15 :D");
 
-	top_area->addstr(title, position::MIDDLE);
+	top_area->add_str(title, position::MIDDLE);
 
 	int cur_dimen_y, cur_dimen_x;
 	getmaxyx(stdscr, this->_terminal_y, this->_terminal_x);
@@ -147,7 +100,7 @@ void Display::helpScreen(){
 			}catch(std::future_error&){
 				raise(SIGTERM);
 
-				this->parent_verse->kaal_day("Display");
+				// this->parent_verse->kaal_day("Display");
 				return;
 			}
 
@@ -183,7 +136,7 @@ void Display::updateScreen(){
 	if( !top_area || !main_area || !legend_area )
 		this->runInitTasks();
 
-	legend_area->addstr(1, 1, "Legend");
+	legend_area->add_str(1, 1, "Legend");
 
 	legend_area->nladdstr("*All worlds continue on diff. threads,w/o blocking the display, or the verse");
 
@@ -199,7 +152,7 @@ void Display::updateScreen(){
 	legend_area->nladdstr("-   L - Logs (of World)");
 	legend_area->nladdstr("-   V - Logs (of Verse)");
 
-	legend_area->addstr(-3, 1, "If you find a problem...");
+	legend_area->add_str(-3, 1, "If you find a problem...");
 	legend_area->nladdstr("Please solve it yourselves");
 	legend_area->nladdstr(":copy: AdityaG15 :D");
 
@@ -219,7 +172,7 @@ void Display::updateScreen(){
 	legend_area->box();
 
 	top_area->moveCursor(1,1);
-	top_area->addstr(title, position::MIDDLE);
+	top_area->add_str(title, position::MIDDLE);
 
 	wrefresh(stdscr);
 	this->dispMutex.unlock();
@@ -267,17 +220,17 @@ void Display::render(){
 		legend_area->box();
 
 		top_area->moveCursor(1,1);
-		top_area->addstr(title, position::MIDDLE);
+		top_area->add_str(title, position::MIDDLE);
 
 		wrefresh(stdscr);
 
 			// time to take input
 		if( async_input.wait_for(100ms) == std::future_status::ready ){
-			legend_area->addstr(static_cast<int>(0.75f*legend_area->getmax_y()), 1, "You entered -> ");
+			legend_area->add_str(static_cast<int>(0.75f*legend_area->getmax_y()), 1, "You entered -> ");
 			char c;
 			try{
 				c = async_input.get();
-				legend_area->addch(c);
+				legend_area->add_ch(c);
 
 				if(c == Display::QUIT_KEY){
 					this->reset_curses();	// free up memory
@@ -297,7 +250,7 @@ void Display::render(){
 			}catch(std::future_error & e){
 				raise(SIGTERM);
 
-				this->parent_verse->kaal_day("Display");
+				// this->parent_verse->kaal_day("Display");
 				return;
 			}
 
@@ -317,9 +270,9 @@ void Display::showExit(){
 	mvwaddstr(stdscr, this->_terminal_y/2, (this->_terminal_x - 15)/2, "About to Exit !");
 }
 
-Display::Display(Verse* parent) :
-	single_term("WorldLine Simulator v0.271", "Created by Aditya Gupta and Steins; Gate"),
-	parent_verse(parent){}
+Display::Display() :
+	single_term("WorldLine Simulator v0.271", "Created by Aditya Gupta and Steins; Gate")
+	{}
 
 Display::~Display(){
 
